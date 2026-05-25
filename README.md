@@ -62,6 +62,7 @@ npm run dev
 | `VITE_DEMO_MODE` | `true` (ברירת מחדל) | `false` |
 | `VITE_SUPABASE_URL` | — | כתובת הפרויקט (`https://xxx.supabase.co`) |
 | `VITE_SUPABASE_ANON_KEY` | — | מפתח anon (public) |
+| `VITE_APP_URL` | — (דמו: `window.location.origin`) | בסיס לקישורי מייל שינוי אופטומטריסט |
 | `SUPABASE_SERVICE_ROLE_KEY` | **לא** בפרונט | רק ב-Supabase CLI / SQL — לעולם לא ב-Vite |
 
 ## Supabase — הגדרת פרויקט
@@ -145,9 +146,53 @@ vercel --prod
 | דמו | `src/api/demoClient.js` |
 | Supabase | `src/api/dataClient.js`, `src/api/supabase.js` |
 
-### שיוך מחדש של אופטומטריסט (מנהל)
+### שיוך מחדש של אופטומטריסט + מייל ללקוח (מנהל)
 
-ב־`/admin`, בטאב **תורים**: בכל שורת תור יש רשימה נפתחת לבחירת אופטומטריסט (שמירה מיידית). בעריכת תור (כפתור **ערוך**) אותה בחירה דרך רשימה. העדכון שולח `optometrist_id` ו־`optometrist_name` ל־`Appointment.update` (דמו ו־Supabase).
+ב־`/admin`, בטאב **תורים**: שינוי אופטומטריסט ברשימה הנפתחת שולח מייל ללקוח עם שלושה קישורים:
+
+| קישור | נתיב | פעולה |
+|--------|------|--------|
+| אישור השינוי | `/appointment/respond?token=…&action=confirm` | סטטוס `confirmed`, אופטומטריסט חדש פעיל |
+| ביטול תור | `/appointment/cancel?token=…` | דף ביטול → `cancelled` |
+| תור חדש | `/book` | הזמנה ציבורית חדשה |
+
+התור עובר ל־`pending_reassignment` עד שהלקוח מאשר או מבטל. נדרש **אימייל** על התור (שדה חובה בהזמנה).
+
+**מצב דמו:** המייל נרשם ב־console ו־`localStorage` תחת `optica_sent_emails`; טוסט למנהל: «מייל נשלח (דמו)» עם תצוגת קישור.
+
+**פרודקשן:** פריסת Edge Function `send-reassignment-email` + Resend (ראו למטה).
+
+#### בדיקה ידנית (דמו)
+
+1. `npm run dev` עם `VITE_DEMO_MODE=true`.
+2. התחברות `/admin` — `optica` / `optica123`.
+3. בחרו תור עם אימייל (למשל נועה כהן) → שנו אופטומטריסט ברשימה.
+4. בדקו טוסט + `localStorage.optica_sent_emails` (או Console).
+5. פתחו קישור **אישור** — אמור להציג הצלחה; סטטוס במערכת `confirmed`.
+6. חזרו על שלב 3 לתור אחר → קישור **ביטול** → «בטל תור» → `cancelled`.
+7. קישור **תור חדש** מפנה ל־`/book`.
+
+#### משתני סביבה — מייל (פרודקשן)
+
+| משתנה | היכן | תיאור |
+|--------|------|--------|
+| `VITE_APP_URL` | Vite / Vercel | כתובת האתר לקישורים במייל (למשל `https://optica.vercel.app`) |
+| `RESEND_API_KEY` | Supabase → Edge Function secrets | מפתח Resend |
+| `RESEND_FROM` | Supabase secrets | שולח, למשל `Optica <noreply@yourdomain.com>` |
+
+```bash
+supabase functions deploy send-reassignment-email
+supabase secrets set RESEND_API_KEY=re_xxx RESEND_FROM="Optica <noreply@yourdomain.com>"
+```
+
+הריצו גם `supabase/migrations/20250525000000_reassignment.sql` (או עדכון `schema.sql`) לעמודות `reassignment_token`, `pending_reassignment`, ו־RPC.
+
+#### נתיבים ציבוריים חדשים
+
+| נתיב | קובץ |
+|------|------|
+| `/appointment/respond` | `src/pages/AppointmentConfirmPage.jsx` |
+| `/appointment/cancel` | `src/pages/AppointmentCancelPage.jsx` |
 
 ## אחסון
 

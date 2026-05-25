@@ -22,6 +22,7 @@ import { Pencil, Trash2 } from "lucide-react";
 const STATUS_MAP = {
   pending: { label: "ממתין" },
   confirmed: { label: "מאושר" },
+  pending_reassignment: { label: "ממתין לאישור לקוח" },
   cancelled: { label: "בוטל" },
   completed: { label: "הושלם" },
 };
@@ -45,6 +46,7 @@ export default function AppointmentTable({
   allowOptometristReassign = false,
   onStatusChange,
   onUpdate,
+  onReassignOptometrist,
   onDelete,
   isMutating,
 }) {
@@ -72,10 +74,17 @@ export default function AppointmentTable({
     });
   }, [editingAppointment]);
 
-  const handleOptometristReassign = (appointmentId, optometristId) => {
+  const handleOptometristReassign = (appointment, optometristId) => {
     const optometrist = optometrists.find((o) => o.id === optometristId);
-    if (!optometrist) return;
-    onUpdate(appointmentId, {
+    if (!optometrist || !appointment) return;
+    if (appointment.optometrist_id === optometrist.id) return;
+
+    if (onReassignOptometrist) {
+      onReassignOptometrist(appointment, optometrist);
+      return;
+    }
+
+    onUpdate(appointment.id, {
       optometrist_id: optometrist.id,
       optometrist_name: optometrist.name,
     });
@@ -160,7 +169,7 @@ export default function AppointmentTable({
                         <p className="text-xs text-muted-foreground">אופטומטריסט</p>
                         <Select
                           value={apt.optometrist_id || ""}
-                          onValueChange={(value) => handleOptometristReassign(apt.id, value)}
+                          onValueChange={(value) => handleOptometristReassign(apt, value)}
                           disabled={isMutating}
                         >
                           <SelectTrigger className="h-9 text-right">

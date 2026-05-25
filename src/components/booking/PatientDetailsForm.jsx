@@ -27,7 +27,7 @@ export default function PatientDetailsForm({
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (!form.patient_name || !form.patient_phone) return;
+    if (!form.patient_name || !form.patient_phone || !form.patient_email?.trim()) return;
     onSubmit(form);
   };
 
@@ -68,13 +68,14 @@ export default function PatientDetailsForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">אימייל</Label>
+        <Label htmlFor="email">אימייל *</Label>
         <Input
           id="email"
           type="email"
           placeholder="your@email.com"
           value={form.patient_email}
           onChange={(e) => handleChange("patient_email", e.target.value)}
+          required
           dir="ltr"
           className="text-left"
         />
@@ -106,7 +107,9 @@ export default function PatientDetailsForm({
         type="submit"
         size="lg"
         className="w-full rounded-xl text-lg py-6 gap-2"
-        disabled={!form.patient_name || !form.patient_phone || isSubmitting}
+        disabled={
+          !form.patient_name || !form.patient_phone || !form.patient_email?.trim() || isSubmitting
+        }
       >
         {isSubmitting ? (
           <Loader2 className="w-5 h-5 animate-spin" />

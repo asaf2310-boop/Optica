@@ -35,11 +35,18 @@ create table if not exists appointments (
   date date not null,
   time text not null,
   status text not null default 'pending'
-    check (status in ('pending', 'confirmed', 'cancelled', 'completed')),
+    check (status in ('pending', 'confirmed', 'cancelled', 'completed', 'pending_reassignment')),
   marketing_consent boolean not null default false,
   notes text,
+  reassignment_token uuid unique,
+  previous_optometrist_id text references optometrists(id) on delete set null,
+  previous_optometrist_name text,
   created_at timestamptz not null default now()
 );
+
+create index if not exists idx_appointments_reassignment_token
+  on appointments(reassignment_token)
+  where reassignment_token is not null;
 
 -- Staff profiles (linked to Supabase Auth users)
 create table if not exists profiles (
@@ -192,3 +199,75 @@ drop policy if exists profiles_update_own on profiles;
 create policy profiles_update_own on profiles
   for update to authenticated
   using (id = auth.uid() or public.is_admin());
+
+-- ---------------------------------------------------------------------------
+-- Reassignment token (public respond links)
+-- ---------------------------------------------------------------------------
+
+create or replace function public.get_appointment_by_reassignment_token(p_token uuid)
+returns setof appointments
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select * from public.appointments
+  where reassignment_token = p_token
+  limit 1;
+$$;
+
+create or replace function public.respond_to_reassignment(p_token uuid, p_action text)
+returns appointments
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  apt appointments%rowtype;
+begin
+  if p_action not in ('confirm', 'cancel') then
+    raise exception 'invalid_action';
+  end if;
+
+  select * into apt from public.appointments
+  where reassignment_token = p_token
+  for update;
+
+  if not found then
+    raise exception 'invalid_token';
+  end if;
+
+  if p_action = 'confirm' then
+    if apt.status = 'confirmed' and apt.reassignment_token is null then
+      return apt;
+    end if;
+    if apt.status <> 'pending_reassignment' then
+      raise exception 'invalid_state';
+    end if;
+    update public.appointments
+    set status = 'confirmed', reassignment_token = null
+    where id = apt.id
+    returning * into apt;
+    return apt;
+  end if;
+
+  if apt.status = 'cancelled' and apt.reassignment_token is null then
+    return apt;
+  end if;
+  if apt.status <> 'pending_reassignment' then
+    raise exception 'invalid_state';
+  end if;
+
+  update public.appointments
+  set status = 'cancelled', reassignment_token = null
+  where id = apt.id
+  returning * into apt;
+
+  return apt;
+end;
+$$;
+
+revoke all on function public.get_appointment_by_reassignment_token(uuid) from public;
+revoke all on function public.respond_to_reassignment(uuid, text) from public;
+grant execute on function public.get_appointment_by_reassignment_token(uuid) to anon, authenticated;
+grant execute on function public.respond_to_reassignment(uuid, text) to anon, authenticated;

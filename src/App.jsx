@@ -9,6 +9,8 @@ import Book from "./pages/Book";
 import StaffDashboard from "./pages/StaffDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
+import AppointmentConfirmPage from "./pages/AppointmentConfirmPage";
+import AppointmentCancelPage from "./pages/AppointmentCancelPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -19,6 +21,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/book" element={<Book />} />
+            <Route path="/appointment/respond" element={<AppointmentConfirmPage />} />
+            <Route path="/appointment/cancel" element={<AppointmentCancelPage />} />
             <Route path="/staff/login" element={<Login portal="staff" />} />
             <Route path="/admin/login" element={<Login portal="admin" />} />
             <Route path="/login" element={<Navigate to="/staff/login" replace />} />

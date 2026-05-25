@@ -223,6 +223,67 @@ function getSessionUser() {
   }
 }
 
+export function getAppointmentByReassignmentTokenDemo(token) {
+  const appointments = readStore().appointments || [];
+  return appointments.find((a) => a.reassignment_token === token) ?? null;
+}
+
+export function respondToReassignmentDemo(token, action) {
+  const store = readStore();
+  const idx = (store.appointments || []).findIndex((a) => a.reassignment_token === token);
+  if (idx < 0) {
+    const err = new Error("invalid_token");
+    err.code = "invalid_token";
+    throw err;
+  }
+
+  const existing = store.appointments[idx];
+
+  if (action === "confirm") {
+    if (existing.status === "confirmed" && !existing.reassignment_token) {
+      return existing;
+    }
+    if (existing.status !== "pending_reassignment") {
+      if (existing.status === "confirmed") return existing;
+      const err = new Error("invalid_state");
+      err.code = "invalid_state";
+      throw err;
+    }
+    const updated = {
+      ...existing,
+      status: "confirmed",
+      reassignment_token: null,
+    };
+    store.appointments[idx] = updated;
+    writeStore(store);
+    return updated;
+  }
+
+  if (action === "cancel") {
+    if (existing.status === "cancelled" && !existing.reassignment_token) {
+      return existing;
+    }
+    if (existing.status !== "pending_reassignment") {
+      if (existing.status === "cancelled") return existing;
+      const err = new Error("invalid_state");
+      err.code = "invalid_state";
+      throw err;
+    }
+    const updated = {
+      ...existing,
+      status: "cancelled",
+      reassignment_token: null,
+    };
+    store.appointments[idx] = updated;
+    writeStore(store);
+    return updated;
+  }
+
+  const err = new Error("invalid_action");
+  err.code = "invalid_action";
+  throw err;
+}
+
 export function createDemoDataClient() {
   const entities = {};
   for (const entityName of Object.keys(ENTITY_KEYS)) {

@@ -10,12 +10,18 @@ import CustomerManagement from "../admin/CustomerManagement";
 import { Card } from "@/components/ui/card";
 import { CalendarCheck, CalendarDays, CheckCircle2, Clock, Settings2, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
+import { demoModeEnabled } from "@/api/demoClient";
+import { buildOptometristReassignmentUpdate } from "@/lib/adminReassignment";
+import { sendReassignmentEmail } from "@/lib/emailService";
 
 export default function DashboardContent({ isAdminView }) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("appointments");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isReassigning, setIsReassigning] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const scopeOptometristId = isAdminView ? null : user?.optometrist_id;
 
@@ -42,6 +48,59 @@ export default function DashboardContent({ isAdminView }) {
       }
     },
   });
+
+  const handleReassignOptometrist = async (appointment, optometrist) => {
+    setIsReassigning(true);
+    try {
+      const updatePayload = buildOptometristReassignmentUpdate(appointment, optometrist);
+      if (!updatePayload) return;
+
+      const updated = await base44.entities.Appointment.update(appointment.id, updatePayload);
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      if (updated?.date) {
+        queryClient.invalidateQueries({ queryKey: ["appointments-for-date", updated.date] });
+      }
+
+      const emailResult = await sendReassignmentEmail({ ...appointment, ...updated });
+      const links = emailResult?.links || emailResult?.preview?.links;
+      const toastTitle = demoModeEnabled ? "מייל נשלח (דמו)" : "מייל נשלח ללקוח";
+
+      toast({
+        title: toastTitle,
+        description: links ? (
+          <span className="block text-xs mt-1 break-all" dir="ltr">
+            {links.confirm}
+          </span>
+        ) : (
+          "נשלח מייל ללקוח עם קישורי אישור/ביטול/תור חדש"
+        ),
+      });
+    } catch (err) {
+      if (err?.message === "missing_patient_email") {
+        toast({
+          title: "חסר אימייל ללקוח",
+          description: "הוסיפו אימייל לתור לפני שינוי אופטומטריסט.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (err?.message === "status_not_reassignable") {
+        toast({
+          title: "לא ניתן לשנות",
+          description: "תור שבוטל או הושלם אינו ניתן לשיוך מחדש.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "שגיאה בשיוך מחדש",
+        description: "נסו שוב בעוד רגע.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsReassigning(false);
+    }
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Appointment.delete(id),
@@ -83,6 +142,7 @@ export default function DashboardContent({ isAdminView }) {
   const statusTabs = [
     { value: "all", label: "הכל" },
     { value: "pending", label: "ממתינים" },
+    { value: "pending_reassignment", label: "ממתין לאישור" },
     { value: "confirmed", label: "מאושרים" },
     { value: "completed", label: "הושלמו" },
     { value: "cancelled", label: "בוטלו" },
@@ -178,8 +238,11 @@ export default function DashboardContent({ isAdminView }) {
                   allowOptometristReassign={isAdminView}
                   onStatusChange={(id, status) => updateMutation.mutate({ id, data: { status } })}
                   onUpdate={(id, data) => updateMutation.mutate({ id, data })}
+                  onReassignOptometrist={isAdminView ? handleReassignOptometrist : undefined}
                   onDelete={(id) => deleteMutation.mutate(id)}
-                  isMutating={updateMutation.isPending || deleteMutation.isPending}
+                  isMutating={
+                    updateMutation.isPending || deleteMutation.isPending || isReassigning
+                  }
                 />
               )}
             </TabsContent>
