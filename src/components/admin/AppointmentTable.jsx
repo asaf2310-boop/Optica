@@ -30,6 +30,7 @@ const EMPTY_EDIT_FORM = {
   patient_name: "",
   patient_phone: "",
   patient_email: "",
+  optometrist_id: "",
   optometrist_name: "",
   date: "",
   time: "",
@@ -40,6 +41,8 @@ const EMPTY_EDIT_FORM = {
 
 export default function AppointmentTable({
   appointments,
+  optometrists = [],
+  allowOptometristReassign = false,
   onStatusChange,
   onUpdate,
   onDelete,
@@ -59,6 +62,7 @@ export default function AppointmentTable({
       patient_name: editingAppointment.patient_name || "",
       patient_phone: editingAppointment.patient_phone || "",
       patient_email: editingAppointment.patient_email || "",
+      optometrist_id: editingAppointment.optometrist_id || "",
       optometrist_name: editingAppointment.optometrist_name || "",
       date: editingAppointment.date || "",
       time: editingAppointment.time || "",
@@ -68,6 +72,15 @@ export default function AppointmentTable({
     });
   }, [editingAppointment]);
 
+  const handleOptometristReassign = (appointmentId, optometristId) => {
+    const optometrist = optometrists.find((o) => o.id === optometristId);
+    if (!optometrist) return;
+    onUpdate(appointmentId, {
+      optometrist_id: optometrist.id,
+      optometrist_name: optometrist.name,
+    });
+  };
+
   const handleEditChange = (field, value) => {
     setEditForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -76,7 +89,7 @@ export default function AppointmentTable({
     event.preventDefault();
     if (!editingAppointment) return;
 
-    onUpdate(editingAppointment.id, {
+    const updatePayload = {
       patient_name: editForm.patient_name,
       patient_phone: editForm.patient_phone,
       patient_email: editForm.patient_email,
@@ -86,7 +99,15 @@ export default function AppointmentTable({
       notes: editForm.notes,
       status: editForm.status,
       marketing_consent: editForm.marketing_consent,
-    });
+    };
+
+    if (allowOptometristReassign && editForm.optometrist_id) {
+      updatePayload.optometrist_id = editForm.optometrist_id;
+      const selected = optometrists.find((o) => o.id === editForm.optometrist_id);
+      if (selected) updatePayload.optometrist_name = selected.name;
+    }
+
+    onUpdate(editingAppointment.id, updatePayload);
 
     setEditingAppointment(null);
   };
@@ -134,7 +155,29 @@ export default function AppointmentTable({
 
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                     {renderField("טלפון", apt.patient_phone, "tabular-nums")}
-                    {renderField("אופטומטריסט", apt.optometrist_name)}
+                    {allowOptometristReassign && optometrists.length > 0 ? (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">אופטומטריסט</p>
+                        <Select
+                          value={apt.optometrist_id || ""}
+                          onValueChange={(value) => handleOptometristReassign(apt.id, value)}
+                          disabled={isMutating}
+                        >
+                          <SelectTrigger className="h-9 text-right">
+                            <SelectValue placeholder="בחר אופטומטריסט" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {optometrists.map((o) => (
+                              <SelectItem key={o.id} value={o.id}>
+                                {o.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      renderField("אופטומטריסט", apt.optometrist_name)
+                    )}
                     {renderField(
                       "תאריך",
                       apt.date ? format(new Date(apt.date + "T00:00:00"), "dd/MM/yyyy") : "-",
@@ -210,12 +253,34 @@ export default function AppointmentTable({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-opto">אופטומטריסט</Label>
-                <Input
-                  id="edit-opto"
-                  value={editForm.optometrist_name}
-                  onChange={(e) => handleEditChange("optometrist_name", e.target.value)}
-                  required
-                />
+                {allowOptometristReassign && optometrists.length > 0 ? (
+                  <Select
+                    value={editForm.optometrist_id || ""}
+                    onValueChange={(value) => {
+                      const selected = optometrists.find((o) => o.id === value);
+                      handleEditChange("optometrist_id", value);
+                      if (selected) handleEditChange("optometrist_name", selected.name);
+                    }}
+                  >
+                    <SelectTrigger id="edit-opto">
+                      <SelectValue placeholder="בחר אופטומטריסט" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {optometrists.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="edit-opto"
+                    value={editForm.optometrist_name}
+                    onChange={(e) => handleEditChange("optometrist_name", e.target.value)}
+                    required
+                  />
+                )}
               </div>
             </div>
 

@@ -26,7 +26,15 @@ npm run dev
 
 פתחו את הכתובת ש-Vite מציג (בדרך כלל `http://localhost:5173`).
 
-### משתמשים לדמו (ממשק ניהול)
+### משתמש בדיקות (מומלץ — דמו ופרודקשן)
+
+| שם משתמש | סיסמה | `/staff` | `/admin` |
+|-----------|--------|----------|----------|
+| **`optica`** | **`optica123`** | תורים וזמינות של ד"ר יוסי כהן (`opto_1`) | כל התורים, שיוך מחדש, לקוחות |
+
+אותו חשבון עובד בשני פורטלי ההתחברות (`/staff/login` ו־`/admin/login`).
+
+### משתמשים נוספים לדמו
 
 | תפקיד | שם משתמש | סיסמה | הרשאות |
 |--------|-----------|--------|---------|
@@ -35,7 +43,17 @@ npm run dev
 | צוות — מיכל | `michal` | `staff123` | תורים וזמינות של ד"ר מיכל לוי |
 | צוות — דנה | `dana` | `staff123` | תורים וזמינות של ד"ר דנה אברהם |
 
-כניסה: `/login` → `/admin`
+## שלוש כתובות לשיתוף (Vercel / פרודקשן)
+
+החליפו `https://optica.vercel.app` בכתובת הפריסה שלכם אם שונה:
+
+| קהל | כתובת מלאה | נתיבים (להדבקה אחרי הדומיין) |
+|-----|-------------|-------------------------------|
+| **לקוחות (ציבור, ללא התחברות)** | `https://optica.vercel.app/` · `https://optica.vercel.app/book` | `/` · `/book` |
+| **אופטומטריסטים** | `https://optica.vercel.app/staff` | `/staff` (התחברות: `optica` / `optica123`) |
+| **מנהל** | `https://optica.vercel.app/admin` | `/admin` (התחברות: `optica` / `optica123`) |
+
+דפי התחברות ישירים: `/staff/login`, `/admin/login`. נתיב `/login` מפנה ל־`/staff/login`.
 
 ## משתני סביבה
 
@@ -53,12 +71,13 @@ npm run dev
 3. **Authentication** → **Providers** → הפעילו **Email** (סיסמה).
 4. צרו משתמשים (**Authentication → Users → Add user**):
 
-   | שם משתמש (בממשק) | אימייל ב-Supabase | סיסמה |
-   |------------------|-------------------|--------|
-   | `admin` | `admin@optica.app` | `admin123` |
-   | `yossi` | `yossi@optica.app` | `staff123` |
-   | `michal` | `michal@optica.app` | `staff123` |
-   | `dana` | `dana@optica.app` | `staff123` |
+   | שם משתמש (בממשק) | אימייל ב-Supabase | סיסמה | הערה |
+   |------------------|-------------------|--------|------|
+   | **`optica`** (מומלץ) | **`optica@optica.app`** | **`optica123`** | מנהל + `opto_1` ב־`seed.sql` |
+   | `admin` | `admin@optica.app` | `admin123` | אופציונלי |
+   | `yossi` | `yossi@optica.app` | `staff123` | אופציונלי |
+   | `michal` | `michal@optica.app` | `staff123` | אופציונלי |
+   | `dana` | `dana@optica.app` | `staff123` | אופציונלי |
 
    הממשק שולח התחברות כ-`{username}@optica.app` (דומיין: `optica.app`).
 
@@ -118,12 +137,17 @@ vercel --prod
 | נתיב | קובץ |
 |------|------|
 | אפליקציה | `src/main.jsx` → `src/App.jsx` |
-| הזמנה | `src/pages/Book.jsx` |
-| ניהול | `src/pages/Admin.jsx` |
-| התחברות | `src/pages/Login.jsx` |
+| לקוחות | `src/pages/Home.jsx`, `src/pages/Book.jsx` |
+| אופטומטריסט | `src/pages/StaffDashboard.jsx` |
+| מנהל | `src/pages/AdminDashboard.jsx` |
+| התחברות | `src/pages/Login.jsx` (`portal`: staff / admin) |
 | בחירת backend | `src/api/base44Client.js` |
 | דמו | `src/api/demoClient.js` |
 | Supabase | `src/api/dataClient.js`, `src/api/supabase.js` |
+
+### שיוך מחדש של אופטומטריסט (מנהל)
+
+ב־`/admin`, בטאב **תורים**: בכל שורת תור יש רשימה נפתחת לבחירת אופטומטריסט (שמירה מיידית). בעריכת תור (כפתור **ערוך**) אותה בחירה דרך רשימה. העדכון שולח `optometrist_id` ו־`optometrist_name` ל־`Appointment.update` (דמו ו־Supabase).
 
 ## אחסון
 

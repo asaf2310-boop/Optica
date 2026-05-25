@@ -5,6 +5,14 @@ const SESSION_KEY = "optica-session";
 export const demoModeEnabled = import.meta.env.VITE_DEMO_MODE !== "false";
 
 export const SEED_USERS = [
+  {
+    id: "user_optica",
+    username: "optica",
+    password: "optica123",
+    role: "admin",
+    full_name: "אופטיקה (בדיקות)",
+    optometrist_id: "opto_1",
+  },
   { id: "user_admin", username: "admin", password: "admin123", role: "admin", full_name: "מנהל מערכת", optometrist_id: null },
   { id: "user_yossi", username: "yossi", password: "staff123", role: "staff", full_name: "יוסי כהן", optometrist_id: "opto_1" },
   { id: "user_michal", username: "michal", password: "staff123", role: "staff", full_name: "מיכל לוי", optometrist_id: "opto_2" },

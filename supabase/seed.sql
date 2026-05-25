@@ -29,16 +29,19 @@ select
   split_part(u.email, '@', 1) as username,
   case split_part(u.email, '@', 1)
     when 'admin' then 'admin'
+    when 'optica' then 'admin'
     else 'staff'
   end as role,
   case split_part(u.email, '@', 1)
     when 'admin' then 'מנהל מערכת'
+    when 'optica' then 'אופטיקה (בדיקות)'
     when 'yossi' then 'יוסי כהן'
     when 'michal' then 'מיכל לוי'
     when 'dana' then 'דנה אברהם'
     else split_part(u.email, '@', 1)
   end as full_name,
   case split_part(u.email, '@', 1)
+    when 'optica' then 'opto_1'
     when 'yossi' then 'opto_1'
     when 'michal' then 'opto_2'
     when 'dana' then 'opto_3'

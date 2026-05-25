@@ -2,22 +2,22 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import Navbar from "../components/layout/Navbar";
-import AppointmentTable from "../components/admin/AppointmentTable";
+import Navbar from "../layout/Navbar";
+import AppointmentTable from "../admin/AppointmentTable";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import AvailabilityManager from "../components/admin/AvailabilityManager";
-import CustomerManagement from "../components/admin/CustomerManagement";
+import AvailabilityManager from "../admin/AvailabilityManager";
+import CustomerManagement from "../admin/CustomerManagement";
 import { Card } from "@/components/ui/card";
 import { CalendarCheck, CalendarDays, CheckCircle2, Clock, Settings2, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function Admin() {
-  const { user, isAdmin } = useAuth();
-  const [activeAdminTab, setActiveAdminTab] = useState("appointments");
+export default function DashboardContent({ isAdminView }) {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState("appointments");
   const [statusFilter, setStatusFilter] = useState("all");
   const queryClient = useQueryClient();
 
-  const scopeOptometristId = isAdmin ? null : user?.optometrist_id;
+  const scopeOptometristId = isAdminView ? null : user?.optometrist_id;
 
   const { data: appointments = [], isLoading } = useQuery({
     queryKey: ["appointments", scopeOptometristId],
@@ -74,10 +74,10 @@ export default function Admin() {
     { label: "הושלמו", value: stats.completed, icon: CheckCircle2, color: "text-green-600" },
   ];
 
-  const adminTabs = [
+  const dashboardTabs = [
     { value: "appointments", label: "תורים", icon: CalendarCheck },
     { value: "availability", label: "זמינות", icon: Settings2 },
-    ...(isAdmin ? [{ value: "customers", label: "לקוחות", icon: Users }] : []),
+    ...(isAdminView ? [{ value: "customers", label: "לקוחות", icon: Users }] : []),
   ];
 
   const statusTabs = [
@@ -88,7 +88,7 @@ export default function Admin() {
     { value: "cancelled", label: "בוטלו" },
   ];
 
-  const scopeLabel = isAdmin
+  const scopeLabel = isAdminView
     ? "כל האופטומטריסטים"
     : optometrists.find((o) => o.id === scopeOptometristId)?.name || user?.full_name;
 
@@ -98,29 +98,31 @@ export default function Admin() {
       <main className="pt-24 pb-16 px-6" dir="rtl">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">ניהול תורים</h1>
+            <h1 className="text-3xl font-bold text-foreground">
+              {isAdminView ? "ניהול מרפאה" : "התורים שלי"}
+            </h1>
             <p className="text-muted-foreground mt-2">
-              {isAdmin ? "מנהל — " : "צוות — "}
+              {isAdminView ? "מנהל — " : "אופטומטריסט — "}
               {scopeLabel}
             </p>
           </div>
 
-          <Tabs value={activeAdminTab} onValueChange={setActiveAdminTab} dir="rtl">
+          <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
             <div
               className={`mb-8 grid w-full gap-3 rounded-2xl border border-border/60 bg-card p-3 shadow-sm ${
-                adminTabs.length === 2 ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-3"
+                dashboardTabs.length === 2 ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-3"
               }`}
               role="tablist"
             >
-              {adminTabs.map((tab) => (
+              {dashboardTabs.map((tab) => (
                 <button
                   key={tab.value}
                   type="button"
                   role="tab"
-                  aria-selected={activeAdminTab === tab.value}
-                  onClick={() => setActiveAdminTab(tab.value)}
+                  aria-selected={activeTab === tab.value}
+                  onClick={() => setActiveTab(tab.value)}
                   className={`flex h-16 w-full items-center justify-center gap-2 rounded-xl border px-4 text-base font-semibold transition-all ${
-                    activeAdminTab === tab.value
+                    activeTab === tab.value
                       ? "border-primary/30 bg-primary text-primary-foreground shadow-md"
                       : "border-transparent bg-muted/40 text-foreground hover:border-primary/20 hover:bg-muted"
                   }`}
@@ -172,6 +174,8 @@ export default function Admin() {
               ) : (
                 <AppointmentTable
                   appointments={filteredAppointments}
+                  optometrists={optometrists}
+                  allowOptometristReassign={isAdminView}
                   onStatusChange={(id, status) => updateMutation.mutate({ id, data: { status } })}
                   onUpdate={(id, data) => updateMutation.mutate({ id, data })}
                   onDelete={(id) => deleteMutation.mutate(id)}
@@ -183,17 +187,17 @@ export default function Admin() {
             <TabsContent value="availability">
               <div className="max-w-2xl">
                 <p className="text-muted-foreground mb-6">
-                  הגדרת ימים ושעות פנויות{isAdmin ? " לכל אופטומטריסט" : " שלך"}.
+                  הגדרת ימים ושעות פנויות{isAdminView ? " לכל אופטומטריסט" : " שלך"}.
                 </p>
                 <AvailabilityManager
                   optometristId={scopeOptometristId}
                   optometrists={optometrists}
-                  isAdmin={isAdmin}
+                  isAdmin={isAdminView}
                 />
               </div>
             </TabsContent>
 
-            {isAdmin && (
+            {isAdminView && (
               <TabsContent value="customers">
                 {isLoading ? (
                   <Skeleton className="h-64 rounded-xl" />

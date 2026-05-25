@@ -2,7 +2,13 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 
-export default function ProtectedRoute({ children, roles }) {
+function portalForRole(role) {
+  if (role === "admin") return "/admin";
+  if (role === "staff") return "/staff";
+  return "/";
+}
+
+export default function ProtectedRoute({ children, roles, loginTo = "/staff/login" }) {
   const { user, isLoadingAuth } = useAuth();
 
   if (isLoadingAuth) {
@@ -14,11 +20,11 @@ export default function ProtectedRoute({ children, roles }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={loginTo} replace />;
   }
 
   if (roles?.length && !roles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={portalForRole(user.role)} replace />;
   }
 
   return children;

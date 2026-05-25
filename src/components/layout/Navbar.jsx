@@ -1,14 +1,18 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Shield, LogOut, LogIn } from "lucide-react";
+import { Menu, X, Shield, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const isStaffArea = location.pathname.startsWith("/staff");
+  const isAdminArea = location.pathname.startsWith("/admin");
+  const isPublicArea = !isStaffArea && !isAdminArea;
 
   const linkClass = (path) =>
     `rounded-full px-4 py-2 text-sm font-semibold transition-all ${
@@ -16,6 +20,8 @@ export default function Navbar() {
         ? "bg-primary/10 text-primary shadow-sm"
         : "text-muted-foreground hover:bg-muted hover:text-foreground"
     }`;
+
+  const dashboardPath = isAdmin ? "/admin" : "/staff";
 
   const handleLogout = () => {
     logout();
@@ -32,28 +38,33 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-2 rounded-full bg-muted/40 p-1">
-            <Link to="/" className={linkClass("/")}>
-              עמוד הבית
-            </Link>
-            <Link to="/book" className={linkClass("/book")}>
-              קביעת תור
-            </Link>
-            {isAuthenticated ? (
+            {isPublicArea && (
               <>
-                <Link to="/admin" className={`${linkClass("/admin")} inline-flex items-center gap-1.5`}>
+                <Link to="/" className={linkClass("/")}>
+                  עמוד הבית
+                </Link>
+                <Link to="/book" className={linkClass("/book")}>
+                  הזמנת תור
+                </Link>
+              </>
+            )}
+            {isAuthenticated && (
+              <>
+                <Link to={dashboardPath} className={`${linkClass(dashboardPath)} inline-flex items-center gap-1.5`}>
                   <Shield className="w-3.5 h-3.5" />
-                  ניהול
+                  {isAdmin ? "ניהול מרפאה" : "התורים שלי"}
                 </Link>
                 <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1 rounded-full">
                   <LogOut className="w-3.5 h-3.5" />
                   יציאה ({user?.full_name})
                 </Button>
               </>
-            ) : (
-              <Link to="/login" className={`${linkClass("/login")} inline-flex items-center gap-1.5`}>
-                <LogIn className="w-3.5 h-3.5" />
-                כניסת צוות
-              </Link>
+            )}
+            {!isAuthenticated && isStaffArea && (
+              <span className="px-4 py-2 text-sm font-semibold text-muted-foreground">כניסת אופטומטריסט</span>
+            )}
+            {!isAuthenticated && isAdminArea && (
+              <span className="px-4 py-2 text-sm font-semibold text-muted-foreground">כניסת מנהל</span>
             )}
           </div>
         </div>
@@ -65,25 +76,34 @@ export default function Navbar() {
 
       {isOpen && (
         <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl px-6 py-4 space-y-2 text-right">
-          <Link to="/" onClick={() => setIsOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-semibold">
-            עמוד הבית
-          </Link>
-          <Link to="/book" onClick={() => setIsOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-semibold">
-            קביעת תור
-          </Link>
+          {isPublicArea && (
+            <>
+              <Link to="/" onClick={() => setIsOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-semibold">
+                עמוד הבית
+              </Link>
+              <Link to="/book" onClick={() => setIsOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-semibold">
+                הזמנת תור
+              </Link>
+            </>
+          )}
           {isAuthenticated ? (
             <>
-              <Link to="/admin" onClick={() => setIsOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-semibold">
-                ניהול
+              <Link to={dashboardPath} onClick={() => setIsOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-semibold">
+                {isAdmin ? "ניהול מרפאה" : "התורים שלי"}
               </Link>
               <button onClick={handleLogout} className="block w-full text-right rounded-xl px-4 py-3 text-sm font-semibold text-destructive">
                 יציאה
               </button>
             </>
           ) : (
-            <Link to="/login" onClick={() => setIsOpen(false)} className="block rounded-xl px-4 py-3 text-sm font-semibold">
-              כניסת צוות
-            </Link>
+            <>
+              {isStaffArea && (
+                <span className="block rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground">כניסת אופטומטריסט</span>
+              )}
+              {isAdminArea && (
+                <span className="block rounded-xl px-4 py-3 text-sm font-semibold text-muted-foreground">כניסת מנהל</span>
+              )}
+            </>
           )}
         </div>
       )}

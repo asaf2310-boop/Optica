@@ -18,8 +18,8 @@ const features = [
     icon: CalendarCheck,
   },
   {
-    title: "ניהול תורים לצוות",
-    description: "כל אופטומטריסט רואה רק את התורים שלו; המנהל רואה הכל.",
+    title: "ללא תשלום מקוון",
+    description: "קביעת תור מהירה — בחירת אופטומטריסט, תאריך ושעה בלבד.",
     icon: Users,
   },
 ];
@@ -38,15 +38,10 @@ export default function Home() {
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-8">
               הזמינו תור אונליין — בלי תשלום מקוון, רק בחירת אופטומטריסט, תאריך ושעה.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex justify-center">
               <Link to="/book">
-                <Button size="lg" className="h-12 rounded-xl px-8 text-base">
-                  קביעת תור
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button size="lg" variant="outline" className="h-12 rounded-xl px-8 text-base">
-                  כניסת צוות / מנהל
+                <Button size="lg" className="h-14 rounded-xl px-10 text-lg font-bold shadow-md">
+                  הזמנת תור
                 </Button>
               </Link>
             </div>
